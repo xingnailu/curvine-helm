@@ -1,0 +1,25 @@
+{{- if .Values.webAdmin.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "curvine.webAdminServiceName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "curvine.webAdminLabels" . | nindent 4 }}
+  {{- with .Values.webAdmin.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.webAdmin.service.type }}
+  ports:
+    - name: web
+      port: {{ .Values.webAdmin.port }}
+      targetPort: web
+      protocol: TCP
+      {{- if and (eq .Values.webAdmin.service.type "NodePort") .Values.webAdmin.service.nodePort }}
+      nodePort: {{ .Values.webAdmin.service.nodePort }}
+      {{- end }}
+  selector:
+    {{- include "curvine.webAdminSelectorLabels" . | nindent 4 }}
+{{- end }}

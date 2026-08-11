@@ -24,6 +24,12 @@ Access the Transfer health and metrics endpoint:
   kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "curvine.transferServiceName" . }} {{ .Values.transfer.webPort }}:{{ .Values.transfer.webPort }}
 {{- end }}
 
+{{- if .Values.webAdmin.enabled }}
+Access the curvine-web admin console:
+  kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "curvine.webAdminServiceName" . }} {{ .Values.webAdmin.port }}:{{ .Values.webAdmin.port }}
+  Then open http://127.0.0.1:{{ .Values.webAdmin.port }}
+{{- end }}
+
 Upgrade in place:
   helm upgrade --install {{ .Release.Name }} <chart-ref> -n {{ .Release.Namespace }} -f values.yaml
 

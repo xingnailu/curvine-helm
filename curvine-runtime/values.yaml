@@ -259,6 +259,48 @@ transfer:
   # Node selector
   nodeSelector: {}
 
+# Standalone curvine-web admin console (curvine-web).
+# Separate from master.webPort, which only exposes master Prometheus /metrics.
+webAdmin:
+  enabled: false
+  replicas: 1
+  # Writes to [web].port and the Service/container port.
+  port: 9000
+
+  # Optional override. Leave empty to use the same image as master (global image.*).
+  image:
+    repository: ""
+    tag: ""
+    pullPolicy: ""
+
+  service:
+    type: ClusterIP
+    annotations: {}
+    # Only when type=NodePort
+    nodePort: null
+
+  # Login credentials via CURVINE_WEB_USERNAME / CURVINE_WEB_PASSWORD.
+  auth:
+    # Create a chart-managed Secret when existingSecret is empty.
+    create: true
+    username: admin
+    password: admin
+    existingSecret: ""
+    usernameKey: username
+    passwordKey: password
+
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "512Mi"
+    limits:
+      cpu: "1000m"
+      memory: "1Gi"
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
 # Service configuration
 service:
   master:
@@ -338,6 +380,8 @@ config:
 #     transfer:
 #       max_running_transfers: 128
 #       lease_timeout: "180s"
+#     web:
+#       # Flat [web] keys only; nested [web.observability] uses binary defaults.
 #     log:
 #       level: "DEBUG"
 configOverrides:
@@ -346,4 +390,5 @@ configOverrides:
   worker: {}
   client: {}
   transfer: {}
+  web: {}
   log: {}

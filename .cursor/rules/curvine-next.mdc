@@ -1,0 +1,20 @@
+---
+description: 本 Helm 仓库与 curvine-next 的项目级关联说明
+alwaysApply: true
+---
+
+# Curvine-Next 项目关联
+
+本仓库（curvine-helm）用于部署 **curvine-next**。
+
+## 约定
+
+- 本仓库仅包含 Helm 部署清单，不包含 curvine-next 应用源码
+- 编写或调整 chart、values、模板时，以 curvine-next 中的服务、配置项、端口、挂载路径等为准
+- 涉及组件行为、配置语义、环境变量含义时，优先查阅本地 curvine-next 源码
+
+## 本地源码路径
+
+具体本机 checkout 路径属于个人环境配置，见：
+
+`.cursor/rules/personal/`（该目录已被 `.gitignore` 忽略，勿提交）

@@ -97,6 +97,22 @@ app.kubernetes.io/component: transfer
 {{- end }}
 
 {{/*
+WebAdmin specific labels
+*/}}
+{{- define "curvine.webAdminLabels" -}}
+{{ include "curvine.labels" . }}
+app.kubernetes.io/component: webadmin
+{{- end }}
+
+{{/*
+WebAdmin selector labels
+*/}}
+{{- define "curvine.webAdminSelectorLabels" -}}
+{{ include "curvine.selectorLabels" . }}
+app.kubernetes.io/component: webadmin
+{{- end }}
+
+{{/*
 Master fullname
 */}}
 {{- define "curvine.masterFullname" -}}
@@ -139,6 +155,24 @@ Transfer SQLite PVC name
 {{- end }}
 
 {{/*
+WebAdmin service / deployment name
+*/}}
+{{- define "curvine.webAdminServiceName" -}}
+{{- printf "%s-webadmin" (include "curvine.fullname" .) | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{/*
+WebAdmin auth Secret name
+*/}}
+{{- define "curvine.webAdminSecretName" -}}
+{{- if .Values.webAdmin.auth.existingSecret -}}
+{{- .Values.webAdmin.auth.existingSecret -}}
+{{- else -}}
+{{- printf "%s-webadmin-auth" (include "curvine.fullname" .) | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+{{- end }}
+
+{{/*
 Extract S3 gateway port from listen address
 */}}
 {{- define "curvine.s3GatewayPort" -}}
@@ -171,6 +205,17 @@ Multiple Transfer instances need a shared, transactional metadata store.
 {{- define "curvine.validateTransfer" -}}
 {{- if and .Values.transfer.enabled (gt (int .Values.transfer.replicas) 1) (not (hasPrefix "mysql://" .Values.transfer.storeUrl)) }}
 {{- fail "transfer.replicas > 1 requires transfer.storeUrl to use mysql://" }}
+{{- end }}
+{{- end }}
+
+{{/*
+WebAdmin requires login credentials via a chart-managed or existing Secret.
+*/}}
+{{- define "curvine.validateWebAdmin" -}}
+{{- if .Values.webAdmin.enabled }}
+{{- if and (not .Values.webAdmin.auth.create) (not .Values.webAdmin.auth.existingSecret) }}
+{{- fail "webAdmin.enabled requires webAdmin.auth.create=true or webAdmin.auth.existingSecret" }}
+{{- end }}
 {{- end }}
 {{- end }}
 
@@ -249,6 +294,35 @@ Full image name
 */}}
 {{- define "curvine.image" -}}
 {{- printf "%s:%s" .Values.image.repository (include "curvine.imageTag" .) }}
+{{- end }}
+
+{{/*
+WebAdmin image. Empty repository/tag inherit the global image (same as master).
+*/}}
+{{- define "curvine.webAdminImage" -}}
+{{- $img := .Values.webAdmin.image | default dict -}}
+{{- $repo := $img.repository | default "" -}}
+{{- if eq $repo "" -}}
+{{- $repo = .Values.image.repository -}}
+{{- end -}}
+{{- $tag := $img.tag | default "" -}}
+{{- if eq $tag "" -}}
+{{- $tag = include "curvine.imageTag" . -}}
+{{- end -}}
+{{- printf "%s:%s" $repo $tag -}}
+{{- end }}
+
+{{/*
+WebAdmin imagePullPolicy. Empty inherits image.pullPolicy.
+*/}}
+{{- define "curvine.webAdminImagePullPolicy" -}}
+{{- $img := .Values.webAdmin.image | default dict -}}
+{{- $policy := $img.pullPolicy | default "" -}}
+{{- if eq $policy "" -}}
+{{- .Values.image.pullPolicy -}}
+{{- else -}}
+{{- $policy -}}
+{{- end -}}
 {{- end }}
 
 {{/*

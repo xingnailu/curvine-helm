@@ -1,0 +1,110 @@
+{{- if .Values.webAdmin.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "curvine.webAdminServiceName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "curvine.webAdminLabels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.webAdmin.replicas }}
+  selector:
+    matchLabels:
+      {{- include "curvine.webAdminSelectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "curvine.webAdminSelectorLabels" . | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- if and .Values.webAdmin.auth.create (not .Values.webAdmin.auth.existingSecret) }}
+        checksum/auth: {{ include (print $.Template.BasePath "/webadmin-secret.yaml") . | sha256sum }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "curvine.serviceAccountName" . }}
+      {{- include "curvine.imagePullSecrets" . | nindent 6 }}
+      containers:
+        - name: webadmin
+          image: {{ include "curvine.webAdminImage" . }}
+          imagePullPolicy: {{ include "curvine.webAdminImagePullPolicy" . }}
+          # Equivalent to bare-metal:
+          #   $CURVINE_HOME/lib/curvine-web start --conf .../curvine-cluster.toml \
+          #     --hostname 0.0.0.0 --port <webAdmin.port>
+          command:
+            - {{ printf "%s/lib/curvine-web" (include "curvine.home" .) }}
+          args:
+            - start
+            - --conf
+            - {{ include "curvine.configFile" . }}
+            - --hostname
+            - "0.0.0.0"
+            - --port
+            - {{ .Values.webAdmin.port | quote }}
+          env:
+            - name: APP_HOME
+              value: {{ include "curvine.appHome" . | quote }}
+            - name: CURVINE_HOME
+              value: {{ include "curvine.home" . | quote }}
+            - name: CURVINE_CONF_FILE
+              value: {{ include "curvine.configFile" . | quote }}
+            - name: CURVINE_WEBUI_DIR
+              value: {{ printf "%s/webui" (include "curvine.home" .) | quote }}
+            - name: CURVINE_WEB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "curvine.webAdminSecretName" . }}
+                  key: {{ .Values.webAdmin.auth.usernameKey }}
+            - name: CURVINE_WEB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "curvine.webAdminSecretName" . }}
+                  key: {{ .Values.webAdmin.auth.passwordKey }}
+          workingDir: {{ include "curvine.home" . | quote }}
+          ports:
+            - name: web
+              containerPort: {{ .Values.webAdmin.port }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /api/v1/auth/session
+              port: web
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/v1/auth/session
+              port: web
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.webAdmin.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: {{ include "curvine.configFile" . }}
+              subPath: curvine-cluster.toml
+              readOnly: true
+            - name: logs
+              mountPath: {{ .Values.config.log.logDir }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "curvine.fullname" . }}-config
+        - name: logs
+          emptyDir: {}
+      {{- with .Values.webAdmin.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.webAdmin.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.webAdmin.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

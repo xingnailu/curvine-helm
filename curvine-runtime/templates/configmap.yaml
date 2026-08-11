@@ -1,5 +1,6 @@
 {{- include "curvine.validateMasterReplicas" . }}
 {{- include "curvine.validateTransfer" . }}
+{{- include "curvine.validateWebAdmin" . }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -159,6 +160,19 @@ data:
     {{- range $key, $value := .Values.configOverrides.transfer }}
     {{- if has $key $managedTransferKeys }}
     {{- fail (printf "configOverrides.transfer.%s is managed by the transfer section" $key) }}
+    {{- end }}
+    {{ $key }} = {{ toJson $value }}
+    {{- end }}
+    {{- end }}
+
+    [web]
+    hostname = "0.0.0.0"
+    port = {{ .Values.webAdmin.port }}
+    {{- $managedWebKeys := list "hostname" "port" }}
+    {{- if .Values.configOverrides.web }}
+    {{- range $key, $value := .Values.configOverrides.web }}
+    {{- if has $key $managedWebKeys }}
+    {{- fail (printf "configOverrides.web.%s is managed by the webAdmin section" $key) }}
     {{- end }}
     {{ $key }} = {{ toJson $value }}
     {{- end }}

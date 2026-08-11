@@ -228,6 +228,31 @@ The Transfer web endpoint exposes `/healthz`, `/readyz`, and `/metrics` on
 `transfer.webPort`. The RPC service listens on `transfer.rpcPort` inside the
 cluster.
 
+## Web Admin Console
+
+Set `webAdmin.enabled=true` to deploy the standalone `curvine-web` admin
+console. This is separate from `master.webPort` (master Prometheus `/metrics`).
+
+```yaml
+webAdmin:
+  enabled: true
+  replicas: 1
+  port: 9000
+  auth:
+    create: true
+    username: admin
+    password: admin
+```
+
+The chart writes `[web].hostname` / `[web].port`, creates a ClusterIP Service,
+and starts the process with `/entrypoint.sh web start`. Login uses
+`CURVINE_WEB_USERNAME` / `CURVINE_WEB_PASSWORD` from a chart-managed Secret, or
+set `webAdmin.auth.existingSecret` to reuse an existing one.
+
+Do not set `hostname` or `port` under `configOverrides.web`; other flat `[web]`
+keys may be passed through that map. Nested `[web.observability]` keeps the
+binary defaults unless you extend the ConfigMap separately.
+
 ## Verify
 
 Run these commands immediately after install or upgrade:

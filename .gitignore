@@ -1,0 +1,3 @@
+# Cursor personal / local rules (machine-specific paths, private prefs)
+.cursor/rules/personal/
+values-ali.yaml
